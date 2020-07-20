@@ -1,7 +1,7 @@
 """
     xNVMe libraries for Python
 
-    Wrapping the shared version of xNVMe
+    Wrapping the shared version of xNVMe v.0.16
 """
 import ctypes
 import time
@@ -19,7 +19,9 @@ VERSION_MINOR = CAPI.xnvme_ver_minor()
 VERSION_PATCH = CAPI.xnvme_ver_patch()
 VERSION = "%d.%d.%d" % (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 
+# pylint: disable=too-few-public-methods
 class BackendAttributes(ctypes.Structure):
+    """Encapsulation of backend attributes"""
 
     _fields_ = [
         ("name", ctypes.c_char * 8),
@@ -27,7 +29,9 @@ class BackendAttributes(ctypes.Structure):
         ("enabled", ctypes.c_uint8)
     ]
 
+# pylint: disable=too-few-public-methods
 class BackendListing(ctypes.Structure):
+    """Encapsulation of backend listing"""
 
     _fields_ = [
         ("capacity", ctypes.c_uint32),
@@ -35,7 +39,9 @@ class BackendListing(ctypes.Structure):
         ("item", ctypes.POINTER(BackendAttributes)),
     ]
 
+# pylint: disable=too-few-public-methods
 class Ident(ctypes.Structure):
+    """Encapsulation of 'xnvme_ident'"""
 
     _fields_ = [
         ("nsid", ctypes.c_uint32),
@@ -48,7 +54,9 @@ class Ident(ctypes.Structure):
         ("be_uri", ctypes.c_char * 320)
     ]
 
+# pylint: disable=too-few-public-methods
 class Enumeration(ctypes.Structure):
+    """Encapsulation of an enumeration result"""
 
     _fields_ = [
         ("capacity", ctypes.c_uint32),

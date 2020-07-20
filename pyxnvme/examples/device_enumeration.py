@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+    Example, demonstrating how to:
+
+    * Load the xNVMe python C API module
+    * Enumerate devices
+    * Print the device enumeration
+"""
 from ctypes import byref, POINTER
 from xnvme import CAPI as capi
 import xnvme

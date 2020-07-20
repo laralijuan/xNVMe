@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""
+    Example, demonstrating how to:
+
+    * Load the xNVMe python C API module
+    * Obtain a device handle
+    * Print device info
+    * Retrieve and print device geometry
+"""
 from xnvme import CAPI as capi
 
 def main():

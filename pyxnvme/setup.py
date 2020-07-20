@@ -23,12 +23,11 @@ setup(
     long_description=read('README.rst'),
     author="Simon A. F. Lund",
     author_email="simon.lund@samsung.com",
-#    url="https://github.com/xnvme/xnvme",
+    url="https://xnvme.io/",
     license="Apache License 2.0",
     install_requires=[],
     zip_safe=False,
     packages=["xnvme"],
-#    package_dir={"": "modules"},
     data_files=[
         ("bin", glob.glob("bin/*")),
     ],
