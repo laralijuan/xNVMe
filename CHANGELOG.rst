@@ -32,6 +32,21 @@ Known Issues
   - Does not support command-option ``XNVME_CMD_ASYNC``
 
 
+v0.0.19
+-------
+
+* Third-party libraries
+
+  - Updated to liburing/v0.7, SPDK/v20.07, fio/v3.21
+  - Adjusted patches and build-system to changes
+
+* Updated docs and scripts for CI via GitHUB Actions
+
+* Updated support for the NVMe Simple-Copy-Command (SCC)
+  - Targeting TP 2020.05.04 (Ratified)
+  - Added ``tests/scc.c`` testing for SCC-support, print identify fields, and
+    exercises the command itself
+
 v0.0.18
 -------
 
