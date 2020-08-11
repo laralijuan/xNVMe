@@ -136,7 +136,7 @@ jobs:
       if: ${{ matrix.container == 'debian:bullseye' }}
       with:
         name: deb-packages
-        path: build/*.deb
+        path: xnvme/build/*.deb
 
   # smoketest the deb-packages built on Debian Bullseye / 11 using CIJOE
   linux-smoketest:
