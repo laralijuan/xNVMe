@@ -8,6 +8,6 @@ libnuma-dev
 libssl-dev
 meson
 nasm
-ninja
+ninja-build
 python3
 uuid-dev
