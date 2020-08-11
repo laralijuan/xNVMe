@@ -1,0 +1,198 @@
+name: basics
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  #
+  # Grab the code and run an 'astyle' check on it
+  #
+  style:
+
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+
+    steps:
+    - name: Grab sources
+      uses: actions/checkout@v2
+
+    - name: Prepare container
+      run: source scripts/pkgs/debian:bullseye.sh
+
+    - name: check
+      run: |
+        cd scripts
+        ./style.sh
+
+  #
+  # Produce a "full" source-archive, that is, including source from submodules
+  #
+  # This is done to provide the source-archive for users in environments without
+  # submodule access and for the containers in the workflow which does not have
+  # a recent enough version of git do pull down the modules
+  #
+  source-archive-gen:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v2
+
+    - name: Prepare Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Generate Full Source Archive
+      run: |
+        pip install git-archive-all
+        make gen-src-archive
+
+    - name: Upload source archive
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: source-archive
+        path: build/*.src.tar.gz
+
+  # Grab and build the source on multiple Linux distributions and "upload" the
+  # deb-packages generated on Debian Bullseye / 11
+  linux-build:
+    runs-on: ubuntu-latest
+    needs: source-archive-gen
+
+    strategy:
+      matrix:
+        container:
+        #- 'alpine:3.12.0'
+        - 'archlinux:20200306'
+        - 'archlinux:latest'
+        - 'centos:centos7'
+        - 'debian:bullseye'
+        - 'debian:buster'
+        - 'debian:stretch'
+        - 'ubuntu:bionic'
+        - 'ubuntu:focal'
+        - 'ubuntu:xenial'
+
+    container:
+      image: ${{ matrix.container }}
+
+    steps:
+
+    - name: Container-prep, get the full-source-archive
+      uses: actions/download-artifact@v2
+      with:
+        name: source-archive
+
+    - name: Unpack the full-source-archive
+      run: |
+        ls
+        tar xzf *.src.tar.gz
+        rm *.src.tar.gz
+        mv xnvme-* xnvme
+        echo "PATH[${PATH}]"
+
+    - name: Install build-requirements
+      run: |
+        cd xnvme
+        source scripts/pkgs/${{ matrix.container }}.sh
+        [[ ! -f "/usr/bin/python" ]] && ln -s /usr/bin/python3.8 /usr/bin/python || true
+
+    - name: Configure, the build
+      run: |
+        [[ -f "/opt/rh/devtoolset-8/enable" ]] && source /opt/rh/devtoolset-8/enable || true
+        cd xnvme
+        make config
+
+    - name: Build!
+      run: |
+        [[ -f "/opt/rh/devtoolset-8/enable" ]] && source /opt/rh/devtoolset-8/enable || true
+        cd xnvme
+        make
+
+    - name: Install
+      run: |
+        [[ -f "/opt/rh/devtoolset-8/enable" ]] && source /opt/rh/devtoolset-8/enable || true
+        cd xnvme
+        make install
+        echo "PATH[${PATH}]"
+
+    - name: Execute '/usr/local/bin/xnvme enum'
+      run: /usr/local/bin/xnvme enum
+
+      #
+      # This binary is intended for smoke-testing and for quick-preview for
+      # those that do not want to build from source. It will later be used for
+      # installation inside a docker-container, as well as inside of a
+      # qemu-guest
+      #
+    - name: Upload Debian Packages
+      uses: actions/upload-artifact@v2
+      if: ${{ matrix.container == 'debian:bullseye' }}
+      with:
+        name: deb-packages
+        path: build/*.deb
+
+  # smoketest the deb-packages built on Debian Bullseye / 11 using CIJOE
+  linux-smoketest:
+    needs: linux-build
+
+    runs-on: self-hosted
+    container:
+      image: refenv/qemu-nvme:latest
+      options: --privileged
+
+    steps:
+    - name: Define stuff
+      run: |
+        echo "::set-env name=CLOUD_IMG_URL::https://cloud.debian.org/images/cloud/bullseye/daily/20200807-351/debian-11-generic-amd64-daily-20200807-351.qcow2"
+        echo "::set-env name=TARGET_ENV::/opt/envs/localhost-qemu.sh"
+        echo "::set-env name=RESULTS::/tmp/results"
+
+    - name: Create result and artifacts directories
+      run: |
+        mkdir -p ${RESULTS}
+
+    - name: Container-prep, download Debian packages
+      uses: actions/download-artifact@v2
+      with:
+        name: deb-packages
+
+    - name: Container-prep, install Debian packages
+      run: dpkg -i *.deb
+
+    - name: CIJOE, define and create result folder
+      run: |
+        mkdir /tmp/results
+        echo "::set-env name=RESULTS::$(mktemp -d -p /tmp/results)"
+
+    - name: CIJOE, invoke the test-runner targeting the qemu-guest
+      run: |
+        source /opt/scripts/suitup.sh
+        cij_runner \
+          $CIJ_TESTPLANS/example_01_usage.plan \
+          ${TARGET_ENV} \
+          --output ${RESULTS}
+
+    - name: QEMU, kill the guest
+      if: always()
+      run: |
+        source /opt/scripts/suitup.sh
+        qemu::kill
+
+    - name: CIJOE, result-log-dump on error
+      if: failure()
+      run: find ${RESULTS} -name "*.log" | xargs cat
+
+    - name: CIJOE, upload test results and report
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: test-results
+        path: ${{ env.RESULTS }}/*
+
