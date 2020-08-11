@@ -4,9 +4,11 @@ build-base
 cmake
 coreutils
 gawk
+git
 libexecinfo-dev
 linux-headers
 make
+meson
 musl-dev
 ncurses
 numactl-dev

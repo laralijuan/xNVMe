@@ -8,5 +8,8 @@ libcunit1-dev
 libncurses5-dev
 libnuma-dev
 libssl-dev
+meson
 nasm
+ninja
+python3
 uuid-dev
